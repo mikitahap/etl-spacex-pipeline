@@ -1,5 +1,4 @@
 import json
-import csv
 import os
 import logging
 
@@ -21,14 +20,6 @@ class Transformer:
             latest = max(self.__files)
             return latest
 
-    def __save_data(self, modified_data):
-        fieldnames = modified_data[0].keys()
-        with open("transformed_launches.csv", "w", newline='') as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(modified_data)
-            logging.info(f"Loaded transformed data to file transformed_launches.csv")
-
     def transform(self):
         latest = self.__get_files()
         if not latest:
@@ -42,10 +33,14 @@ class Transformer:
                 data = json.load(json_file)
 
                 for launch in data:
+                    launch_time = launch.get("launch_date_utc", "")
+                    if launch_time:
+                        launch_time = launch_time.replace("T", " ").replace(".000Z", "")
+
                     item = {
                         "flight_number": launch.get("flight_number", ""),
                         "launch_year": launch.get("launch_year", ""),
-                        "launch_date_utc": launch.get("launch_date_utc", ""),
+                        "launch_date_utc": launch_time,
                         "rocket_name": launch.get("rocket", {}).get("rocket_name", ""),
                         "rocket_type": launch.get("rocket", {}).get("rocket_type", ""),
                         "launch_site": launch.get("launch_site", {}).get("site_name", ""),
@@ -55,7 +50,4 @@ class Transformer:
         except Exception as e:
             logging.error(e)
             return
-        self.__save_data(modified_data)
-
-transformer = Transformer()
-transformer.transform()
+        return modified_data
