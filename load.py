@@ -25,6 +25,7 @@ def mysql_connection():
     try:
         yield db
     finally:
+        db.commit()
         db.close()
 
 def load_from_json():
@@ -55,7 +56,6 @@ def load_from_json():
                 )
                 mycursor.execute(sql_query, values)
 
-            db.commit()
             logging.info("Successfully inserted data into launches table")
             mycursor.close()
     except mysql.connector.Error as e:
