@@ -39,7 +39,3 @@ class Extractor:
         launches_data = self.__get_data()
         if launches_data is not None:
             self.__save_launches(launches_data)
-
-base_url = "https://api.spacexdata.com/v3/launches"
-extractor = Extractor(base_url)
-extractor.extract()
