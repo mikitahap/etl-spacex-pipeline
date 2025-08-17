@@ -1,3 +1,5 @@
+logs/
+plugins/
 .env
 .idea/
 .DS_Store

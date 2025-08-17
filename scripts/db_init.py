@@ -11,30 +11,41 @@ logging.basicConfig(
         datefmt='%Y-%m-%d %H:%M:%S'
     )
 
+
 @contextmanager
 def mysql_connection():
+    db = None
     try:
-        load_dotenv()
+        load_dotenv("/opt/airflow/.env")
 
         db = mysql.connector.connect(
-            host=os.getenv("DB_HOST"),
-            port=os.getenv("DB_PORT"),
-            user=os.getenv("DB_USER"),
-            password=os.getenv("DB_PASSWORD"),
+            host=os.getenv("ETL_DB_HOST"),
+            port=os.getenv("ETL_DB_PORT"),
+            user=os.getenv("ETL_DB_USER"),
+            password=os.getenv("ETL_DB_PASSWORD"),
         )
         yield db
     except Exception as error:
-        logging.error(error)
+        logging.error(f"MySQL connection error: {error}")
+        yield None
     finally:
-        db.commit()
-        db.close()
+        if db is not None:
+            try:
+                db.commit()
+            except Exception as e:
+                logging.warning(f"Commit failed: {e}")
+            db.close()
+
 
 def init_db():
     with mysql_connection() as db:
-        mycursor = db.cursor()
+        if db is None:
+            logging.error("Database connection failed, cannot initialize DB.")
+            return
         try:
-            mycursor.execute(f"CREATE DATABASE IF NOT EXISTS {os.getenv('DB_NAME')}")
-            mycursor.execute(f"USE {os.getenv('DB_NAME')}")
+            mycursor = db.cursor()
+            mycursor.execute(f"CREATE DATABASE IF NOT EXISTS {os.getenv('ETL_DB_NAME')}")
+            mycursor.execute(f"USE {os.getenv('ETL_DB_NAME')}")
             mycursor.execute("CREATE TABLE IF NOT EXISTS launches(flight_number INT, launch_year INT, launch_date_utc DATETIME, rocket_name VARCHAR(255), rocket_type VARCHAR(255), launch_site VARCHAR(255), UNIQUE(launch_date_utc, flight_number))")
             logging.info("Database initialized")
             mycursor.close()

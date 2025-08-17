@@ -1,7 +1,6 @@
 import json
 import os
 import logging
-from extract import *
 from dotenv import load_dotenv
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -12,10 +11,6 @@ class Transformer:
 
     def __get_files(self):
         self.__files.clear()
-
-        base_url = os.getenv("BASE_URL")
-        extractor = Extractor(base_url)
-        extractor.extract()
 
         for f in os.listdir('.'):
             if f.startswith("launches") and f.endswith(".json"):

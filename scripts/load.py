@@ -1,9 +1,9 @@
 import mysql.connector
-from transform import *
 import logging
 from dotenv import load_dotenv
 from db_init import init_db
 from contextlib import contextmanager
+import os
 
 logging.basicConfig(
         level=logging.INFO,
@@ -14,53 +14,51 @@ logging.basicConfig(
 
 @contextmanager
 def mysql_connection():
-    load_dotenv()
+    load_dotenv("/opt/airflow/.env")
     db = mysql.connector.connect(
-        host=os.getenv("DB_HOST"),
-        port=os.getenv("DB_PORT"),
-        user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASSWORD"),
-        database=os.getenv("DB_NAME")
+        host=os.getenv("ETL_DB_HOST"),
+        port=os.getenv("ETL_DB_PORT"),
+        user=os.getenv("ETL_DB_USER"),
+        password=os.getenv("ETL_DB_PASSWORD"),
+        database=os.getenv("ETL_DB_NAME")
     )
     try:
         yield db
     finally:
         db.commit()
         db.close()
-
-def load_from_json():
-    try:
-        transformer = Transformer()
-        modified_data = transformer.transform()
-
-        if not modified_data:
-            logging.error('No data found')
-            return
-
-        load_dotenv()
+class Loader():
+    def __init__(self):
+        load_dotenv("/opt/airflow/.env")
         init_db()
 
-        with mysql_connection() as db:
-            mycursor = db.cursor()
+    def load(self, modified_data):
+        try:
+            if not modified_data:
+                logging.error('No data found')
+                return
 
-            sql_query = "INSERT IGNORE INTO launches (flight_number, launch_year, launch_date_utc, rocket_name, rocket_type, launch_site) VALUES (%s, %s, %s, %s, %s, %s)"
+            init_db()
 
-            for item in modified_data:
-                values = (
-                    item['flight_number'],
-                    item['launch_year'],
-                    item['launch_date_utc'],
-                    item['rocket_name'],
-                    item['rocket_type'],
-                    item['launch_site']
-                )
-                mycursor.execute(sql_query, values)
+            with mysql_connection() as db:
+                mycursor = db.cursor()
 
-            logging.info("Successfully inserted data into launches table")
-            mycursor.close()
-    except mysql.connector.Error as e:
-        logging.error(f"MySQL error: {e}")
-    except Exception as e:
-        logging.error(f"Unexpected error: {e}")
+                sql_query = "INSERT IGNORE INTO launches (flight_number, launch_year, launch_date_utc, rocket_name, rocket_type, launch_site) VALUES (%s, %s, %s, %s, %s, %s)"
 
-load_from_json()
+                for item in modified_data:
+                    values = (
+                        item['flight_number'],
+                        item['launch_year'],
+                        item['launch_date_utc'],
+                        item['rocket_name'],
+                        item['rocket_type'],
+                        item['launch_site']
+                    )
+                    mycursor.execute(sql_query, values)
+
+                logging.info("Successfully inserted data into launches table")
+                mycursor.close()
+        except mysql.connector.Error as e:
+            logging.error(f"MySQL error: {e}")
+        except Exception as e:
+            logging.error(f"Unexpected error: {e}")

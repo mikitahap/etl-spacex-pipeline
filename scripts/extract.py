@@ -3,6 +3,7 @@ from datetime import datetime
 import json
 import logging
 import os
+from dotenv import load_dotenv
 
 logging.basicConfig(
         level=logging.INFO,
@@ -13,10 +14,11 @@ logging.basicConfig(
     )
 
 class Extractor:
-    def __init__(self, url):
-        self.__base_url = url
-
+    def __init__(self):
+        load_dotenv("/opt/airflow/.env")
+        self.__base_url = os.getenv("BASE_URL")
     def __get_data(self):
+
         try:
             response = requests.get(self.__base_url)
             response.raise_for_status()
